@@ -30,9 +30,6 @@ model = AutoencoderCNNClassifier().to(device)  # Use the Autoencoder class
 criterion = nn.CrossEntropyLoss()  # Use Mean Squared Error (MSE) loss for reconstruction
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-# Create a directory to save generated images
-os.makedirs("generated_images", exist_ok=True)
-
 # Training loop
 for epoch in range(epochs):
     model.train()
