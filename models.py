@@ -52,21 +52,21 @@ class CNNClassifier(nn.Module):
         return x
 
 
-class AutoencoderCNNClassifier(nn.Module):
+class BlackVIP(nn.Module):
     def __init__(self, num_classes=10):
-        super(AutoencoderCNNClassifier, self).__init__()
+        super(BlackVIP, self).__init__()
         self.autoencoder = Autoencoder()
         self.classifier = CNNClassifier(num_classes)
-        for name, param in self.model.named_parameters():
-            param.requires_grad_(False)
+        for param in self.classifier.parameters():
+            param.requires_grad = False
 
     def forward(self, x):
         x = self.autoencoder(x)
         x = self.classifier(x)
         return x
     
-# Instantiate the combined model
-autoencoder_with_classifier = AutoencoderCNNClassifier()
+# # Instantiate the combined model
+# autoencoder_with_classifier = AutoencoderCNNClassifier()
 
-# Print the architecture
-print(autoencoder_with_classifier)
+# # Print the architecture
+# print(autoencoder_with_classifier)
