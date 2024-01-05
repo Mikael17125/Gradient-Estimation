@@ -2,11 +2,10 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Subset, random_split
 from torchvision import datasets, transforms
-import torchvision.utils as vutils
 from spsa import SPSA
 from torch.cuda.amp import autocast
-from tqdm import tqdm
-
+from utils import Colors, print_color
+import time
 # Define device (GPU if available, else CPU)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -25,33 +24,39 @@ transform = transforms.Compose([transforms.ToTensor(),
 full_train_dataset = datasets.SVHN(root='./data', split='train', transform=transform, download=True)
 full_test_dataset = datasets.SVHN(root='./data', split='test', transform=transform, download=True)
 
-# Select only 10 images per class for training
+# Split the dataset into training and validation sets
+train_size = int(0.7 * len(full_train_dataset))
+val_size = len(full_train_dataset) - train_size
+train_dataset, val_dataset = random_split(full_train_dataset, [train_size, val_size])
+
+# Select only 16 images per class for training
 class_limit_train = 16
 selected_train_indices = []
 for i in range(10):  # Assuming 10 classes in SVHN
-    indices = [idx for idx, label in enumerate(full_train_dataset.labels) if label == i]
+    indices = [idx for idx, label in enumerate(train_dataset.dataset.labels) if label == i]
     selected_train_indices.extend(indices[:class_limit_train])
-
-train_dataset = Subset(full_train_dataset, selected_train_indices)
 
 # Create a validation dataset with 4 images per class
 class_limit_val = 4
 selected_val_indices = []
 for i in range(10):  # Assuming 10 classes in SVHN
-    indices = [idx for idx, label in enumerate(full_train_dataset.labels) if label == i]
+    indices = [idx for idx, label in enumerate(val_dataset.dataset.labels) if label == i]
     selected_val_indices.extend(indices[:class_limit_val])
 
-val_dataset = Subset(full_train_dataset, selected_val_indices)
-
 # Create DataLoader for training and validation
+train_dataset = Subset(train_dataset.dataset, selected_train_indices)
+val_dataset = Subset(val_dataset.dataset, selected_val_indices)
+
 train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=False)
+
+test_loader = DataLoader(dataset=full_test_dataset, batch_size=batch_size, shuffle=False)
 
 # Loss function
 criterion = nn.CrossEntropyLoss()
 spsa = SPSA(device)
 
-print("START TRAINING")
+print_color("START TRAINING", Colors.MAGENTA)
 
 b1 = 0.9
 m1 = 0
@@ -65,7 +70,10 @@ for epoch in range(1, epochs):
     spsa.model.train()
     total_loss = 0
     total_acc = 0
-    for step, (images, labels) in enumerate(tqdm(train_loader)):
+    
+    start_time = time.time()
+    for step, (images, labels) in enumerate((train_loader)):
+
         with autocast():
             images = images.to(device)
             labels = labels.to(device)
@@ -90,25 +98,43 @@ for epoch in range(1, epochs):
             torch.nn.utils.vector_to_parameters(w_new, spsa.model.coordinator.dec.parameters())
 
             total_loss += loss.item()
-
-    average_loss = total_loss / len(train_loader)
-    print(f'epoch {epoch}, training loss {average_loss}, training acc {acc}')
     
-    torch.save(spsa.model.coordinator.dec.state_dict(), 'spsa_dec.pth')
+    average_loss = total_loss / len(train_loader)
+    end_time = time.time()
+    
+    print_color(f'epoch {epoch:4d} | training loss {average_loss:5f} | training acc {acc:5f} | Elapsed Time {end_time - start_time:.3f}', Colors.RED)
+    
+    
+    torch.save(spsa.model.coordinator.dec.state_dict(), f'spsa_dec.pth')
     
     # Validation phase
     spsa.model.eval()
     total_val_loss = 0
     total_val_acc = 0
+    start_time = time.time()
     with torch.no_grad():
-        for val_step, (val_images, val_labels) in enumerate(tqdm(val_loader)):
+        for val_step, (val_images, val_labels) in enumerate((val_loader)):
             val_images = val_images.to(device)
             val_labels = val_labels.to(device)
 
             val_w = torch.nn.utils.parameters_to_vector(spsa.model.coordinator.dec.parameters())
             val_ghat, val_loss, val_acc = spsa.estimate(val_w, criterion, val_images, val_labels, ck)
+    
+    end_time = time.time()
+    print_color(f'epoch {epoch:4d} | validation loss {val_loss:5f} | validation acc {val_acc:5f} | Elapsed Time {end_time - start_time:.3f}\n', Colors.GREEN)
+    
+spsa.model.eval()
+total_test_loss = 0
+total_test_acc = 0
+with torch.no_grad():
+    for test_step, (test_images, test_labels) in enumerate((test_loader)):
+        test_images = test_images.to(device)
+        test_labels = test_labels.to(device)
 
-            total_val_loss += val_loss.item()
+        outputs = spsa.model(images)
+        test_loss = criterion(outputs, test_labels)
 
-    average_val_loss = total_val_loss / len(val_loader)
-    print(f'epoch {epoch}, validation loss {average_val_loss}, validation acc {val_acc}')
+        total_test_loss += test_loss.item()
+        
+average_test_loss = total_test_loss / len(test_loader)
+print(f'epoch {epoch}, validation loss {average_test_loss} \n')
