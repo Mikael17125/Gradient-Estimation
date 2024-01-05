@@ -10,6 +10,7 @@ class SPSA:
         
         self.device = device
         self.model = CustomCLIP().to(device)
+        
         for name, param in self.model.named_parameters():
             param.requires_grad_(False)
         
