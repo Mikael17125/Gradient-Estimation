@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
-from models import Autoencoder, BlackVIP, CNNClassifier
+from models_test import Autoencoder, BlackVIP, CNNClassifier
 from utils import compute_accuracy
 
 # Define device (GPU if available, else CPU)

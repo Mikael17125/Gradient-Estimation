@@ -4,7 +4,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 import torchvision
-from models import Autoencoder  # Assuming you have the Autoencoder class defined in models.py
+from models_test import Autoencoder  # Assuming you have the Autoencoder class defined in models.py
 from utils import compute_accuracy
 import os
 
@@ -57,7 +57,7 @@ for epoch in range(epochs):
             print(f"Epoch {epoch+1}/{epochs}, Batch {batch_idx}/{len(train_loader)}, Loss: {loss.item()}")
             
         
-        average_loss = total_loss / len(test_loader)
+        average_loss = total_loss / len(train_loader)
         print(f"Average MSE Loss: {average_loss:.4f}")
 
     # Save the trained model

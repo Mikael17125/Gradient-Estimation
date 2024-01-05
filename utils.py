@@ -1,5 +1,5 @@
 from clip import clip
-
+import torch
 def load_clip_to_cpu(cfg):
     backbone_name = "ViT-B/16"
     url = clip._MODELS[backbone_name]
