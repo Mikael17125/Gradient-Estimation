@@ -44,9 +44,5 @@ class SPSA:
         else: ghat = torch.cat(ghats, dim=0).mean(dim=0)
                         
         loss = ((loss_r + loss_l)/2)
-        acc = ((compute_accuracy(output_l, label)[0]+
-                compute_accuracy(output_r, label)[0])/2).item()
-        
-        # import pdb; pdb.set_trace()
                 
-        return ghat, loss, acc
+        return ghat, loss

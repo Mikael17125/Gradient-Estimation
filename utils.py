@@ -14,7 +14,7 @@ def print_color(text, color):
     print(color + text + Colors.RESET)
     
     
-def load_clip_to_cpu(cfg):
+def load_clip_to_cpu():
     backbone_name = "ViT-B/16"
     url = clip._MODELS[backbone_name]
     model_path = clip._download(url)
