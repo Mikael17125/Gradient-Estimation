@@ -4,8 +4,14 @@ from pathlib import Path
 def get_configs():
     parser = argparse.ArgumentParser()
     
+    
+    parser.add_argument('--ckpt_path',
+                    default=None,
+                    type=Path,
+                    help='Root directory path')
+    
     parser.add_argument('--n_epochs',
-                    default=200,
+                    default=5000,
                     type=int,
                     help='Number of total epochs to run')
     
@@ -32,7 +38,7 @@ def get_configs():
                         help='Number of threads for multi-thread loading')
     
     parser.add_argument('--checkpoint',
-                        default=10,
+                        default=500,
                         type=int,
                         help='Trained model is saved at every this epochs.')
 

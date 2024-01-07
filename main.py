@@ -3,18 +3,18 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, Subset, random_split
 from torchvision import datasets, transforms
 from spsa import SPSA
-from utils import Colors, print_color
+from utils import Colors, print_color, load_checkpoint
 from models import CustomCLIP
 from train import train_epoch
 from val import val_epoch
 from inference import inference
-from configs import get_configs 
+from configs import get_configs
 
 # Define device (GPU if available, else CPU)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Hyperparameters
-batch_size = 128
+batch_size = 256
 epochs = 5000
 
 # Load SVHN dataset
@@ -55,24 +55,28 @@ test_loader = DataLoader(dataset=full_test_dataset, batch_size=batch_size, shuff
 
 def main(cfg):
     
-    model = CustomCLIP().to(device)
-    criterion = nn.CrossEntropyLoss()
-    spsa = SPSA(model, criterion)
-    
-    model.coordinator.load_state_dict(torch.load("/home/mikael/Code/black_vip/spsa_coordinator_2.pth"))
-
     print_color(f'<====BLACK VIP====>', Colors.MAGENTA)
     
-    for epoch in range(1, epochs):
+    model = CustomCLIP().to(device)
+    
+    if cfg.ckpt_path:
+        checkpoint = load_checkpoint(cfg.ckpt_path)
+        model.coordinator.dec.load_state_dict(checkpoint["state_dict"])
+        
+    criterion = nn.CrossEntropyLoss()
+    spsa = SPSA(model, criterion)
+        
+    for epoch in range(1, cfg.n_epochs):
 
         if not cfg.no_train:
             train_epoch(epoch, spsa, train_loader, device)
             
         if not cfg.no_val:
             val_epoch(epoch, spsa, val_loader, device)
-            
-    if not cfg.no_inference:
-        inference(spsa, test_loader, device)
+        
+        if epoch % cfg.checkpoint == 0:
+            if not cfg.no_inference:
+                inference(spsa, test_loader, device)
         
 if __name__ == "__main__":
     cfg = get_configs()

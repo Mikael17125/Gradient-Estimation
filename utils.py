@@ -1,5 +1,8 @@
 from clip import clip
 import torch
+import pickle
+from functools import partial
+import os.path as osp
 
 class Colors:
     RESET = "\033[0m"
@@ -42,33 +45,42 @@ def clip_clipping(x):
                         torch.clip(x[:,2,:,:], min=-1.48021977, max=2.14589699).unsqueeze(1)], dim=1)
     return out
 
-def compute_accuracy(output, target, topk=(1, )):
-    """Computes the accuracy over the k top predictions for
-    the specified values of k.
+def load_checkpoint(fpath):
+    r"""Load checkpoint.
+
+    ``UnicodeDecodeError`` can be well handled, which means
+    python2-saved files can be read from python3.
 
     Args:
-        output (torch.Tensor): prediction matrix with shape (batch_size, num_classes).
-        target (torch.LongTensor): ground truth labels with shape (batch_size).
-        topk (tuple, optional): accuracy at top-k will be computed. For example,
-            topk=(1, 5) means accuracy at top-1 and top-5 will be computed.
+        fpath (str): path to checkpoint.
 
     Returns:
-        list: accuracy at top-k.
+        dict
+
+    Examples::
+        >>> fpath = 'log/my_model/model.pth.tar-10'
+        >>> checkpoint = load_checkpoint(fpath)
     """
-    maxk = max(topk)
-    batch_size = target.size(0)
+    if fpath is None:
+        raise ValueError("File path is None")
 
-    if isinstance(output, (tuple, list)):
-        output = output[0]
+    if not osp.exists(fpath):
+        raise FileNotFoundError('File is not found at "{}"'.format(fpath))
 
-    _, pred = output.topk(maxk, 1, True, True)
-    pred = pred.t()
-    correct = pred.eq(target.view(1, -1).expand_as(pred))
+    map_location = None if torch.cuda.is_available() else "cpu"
 
-    res = []
-    for k in topk:
-        correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
-        acc = correct_k.mul_(100.0 / batch_size)
-        res.append(acc)
+    try:
+        checkpoint = torch.load(fpath, map_location=map_location)
 
-    return res
+    except UnicodeDecodeError:
+        pickle.load = partial(pickle.load, encoding="latin1")
+        pickle.Unpickler = partial(pickle.Unpickler, encoding="latin1")
+        checkpoint = torch.load(
+            fpath, pickle_module=pickle, map_location=map_location
+        )
+
+    except Exception:
+        print('Unable to load checkpoint from "{}"'.format(fpath))
+        raise
+
+    return checkpoint

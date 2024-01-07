@@ -19,5 +19,4 @@ def val_epoch(epoch, spsa, data_loader, device):
             len_data += outputs.shape[0]
 
     end_time = time.time()
-
     print_color(f'Validating {epoch:2d} | Elapsed Time {end_time - start_time:.3f} | Loss {loss:.5f} | Accuracy {correct/len_data:.5f} ', Colors.YELLOW)

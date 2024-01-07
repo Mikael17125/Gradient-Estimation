@@ -17,7 +17,7 @@ def train_epoch(epoch, spsa, data_loader, device):
 
         correct += (labels == torch.argmax(outputs, dim=1)).float().sum()
         len_data += outputs.shape[0]
-        
+                
     end_time = time.time()
 
     print_color(f'Training {epoch:2d} | Elapsed Time {end_time - start_time:.3f} | Loss {loss:.5f} | Accuracy {correct/len_data:.5f}', Colors.RED)

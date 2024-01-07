@@ -34,11 +34,11 @@ class SPSA:
                 
                 p_side = (torch.rand(len(w)).reshape(-1,1) + 1)/2
                 samples = torch.cat([p_side,-p_side], dim=1)
-                perturb = ck * torch.gather(samples, 1, torch.bernoulli(torch.ones_like(p_side)/2).type(torch.int64)).reshape(-1).cuda() 
+                perturb = torch.gather(samples, 1, torch.bernoulli(torch.ones_like(p_side)/2).type(torch.int64)).reshape(-1).cuda() 
                 del samples; del p_side
                 
-                w_r = w + perturb
-                w_l = w - perturb
+                w_r = w + ck * perturb
+                w_l = w - ck * perturb
                 
                 with torch.no_grad():
                     torch.nn.utils.vector_to_parameters(w_r, self.model.coordinator.dec.parameters())
@@ -49,10 +49,10 @@ class SPSA:
 
                 loss_r = self.criterion(output_r, labels)
                 loss_l = self.criterion(output_l, labels)
-                
+
                 ghat = (loss_r - loss_l)/((2*ck)*perturb)
                 ghats.append(ghat.reshape(1, -1))
-                
+            
             if self.sp_avg > 1:
                 ghat = torch.cat(ghats, dim=0).mean(dim=0) 
 
