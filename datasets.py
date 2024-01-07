@@ -17,7 +17,10 @@ class SVHN:
                                                 (0.26862954, 0.26130258, 0.27577711))])
 
     def get_train_val_data(self):
-        full_train_dataset = datasets.SVHN(root='./data', split='train', transform=self.train_transform, download=False)
+        full_train_dataset = datasets.SVHN(root='./data', 
+                                           split='train', 
+                                           transform=self.train_transform, 
+                                           download=False)
         
          # Split the dataset into training and validation sets
         train_size = int(0.7 * len(full_train_dataset))
@@ -37,19 +40,38 @@ class SVHN:
             selected_val_indices.extend(indices[:self.cfg.val_shot])
 
         # Create DataLoader for training and validation
-        train_dataset = Subset(train_dataset.dataset, selected_train_indices)
-        val_dataset = Subset(val_dataset.dataset, selected_val_indices)
+        train_dataset = Subset(train_dataset.dataset, 
+                               selected_train_indices)
+        
+        val_dataset = Subset(val_dataset.dataset, 
+                             selected_val_indices)
 
-        train_loader = DataLoader(dataset=train_dataset, batch_size=self.cfg.batch_size, shuffle=True)
-        val_loader = DataLoader(dataset=val_dataset, batch_size=self.cfg.batch_size, shuffle=False)
+        train_loader = DataLoader(dataset=train_dataset, 
+                                  batch_size=self.cfg.batch_size,
+                                  num_workers=self.cfg.n_threads,
+                                  pin_memory=True, 
+                                  shuffle=True)
+        
+        val_loader = DataLoader(dataset=val_dataset, 
+                                batch_size=self.cfg.batch_size,
+                                num_workers=self.cfg.n_threads,
+                                pin_memory=True,  
+                                shuffle=False)
         
         return train_loader, val_loader
 
     def get_test_data(self):
         # Create a training dataset
-        full_test_dataset = datasets.SVHN(root='./data', split='test', transform=self.test_transform, download=False)
+        full_test_dataset = datasets.SVHN(root='./data', 
+                                          split='test', 
+                                          transform=self.test_transform, 
+                                          download=False)
         
         # Create DataLoader for testing
-        test_loader = DataLoader(dataset=full_test_dataset, batch_size=self.cfg.batch_size, shuffle=False)
+        test_loader = DataLoader(dataset=full_test_dataset, 
+                                    batch_size=self.cfg.batch_size,
+                                    num_workers=self.cfg.n_threads,
+                                    pin_memory=True,   
+                                    shuffle=False)
         
         return test_loader

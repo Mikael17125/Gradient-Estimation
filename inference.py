@@ -36,16 +36,12 @@ def main(cfg):
     
     model = CustomCLIP().to(device)
     
-    print_color(f'<====LOAD CKPT====>', Colors.MAGENTA)
     if cfg.ckpt_path:
+        print_color(f'<====LOAD CKPT====>', Colors.MAGENTA)
+        print(cfg.ckpt_path)
         checkpoint = load_checkpoint(cfg.ckpt_path)
         model.coordinator.dec.load_state_dict(checkpoint["state_dict"])
         
-    criterion = nn.CrossEntropyLoss()
-    spsa = SPSA(model, criterion)
-        
-    model = CustomCLIP().to(device)
-
     criterion = nn.CrossEntropyLoss()
     spsa = SPSA(model, criterion)
 
