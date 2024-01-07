@@ -20,6 +20,16 @@ def get_configs():
                         type=int,
                         help='Batch Size')
     
+    parser.add_argument('--train_shot',
+                    default=16,
+                    type=int,
+                    help='Train Shot')
+    
+    parser.add_argument('--val_shot',
+                default=4,
+                type=int,
+                help='Train Shot')
+    
     parser.add_argument('--no_train',
                         action='store_true',
                         help='If true, training is not performed.')
@@ -30,7 +40,7 @@ def get_configs():
     
     parser.add_argument('--no_inference',
                         action='store_true',
-                        help='If true, validation is not performed.')
+                        help='If true, test is not performed.')
     
     parser.add_argument('--n_threads',
                         default=4,
