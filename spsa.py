@@ -25,7 +25,6 @@ class SPSA:
         
     def estimate(self, epoch, images, labels):
         with autocast():
-
             ghats = []
             ak = self.a / ((epoch + self.o) ** self.alpha)
             ck = self.c / (epoch ** self.gamma)
@@ -58,10 +57,8 @@ class SPSA:
                 ghat = torch.cat(ghats, dim=0).mean(dim=0) 
 
             if self.est_type == 'spsa-gc':
-                if epoch > 1:
-                    self.m1 = self.b1*self.m1 + ghat  
-                else: 
-                    self.m1 = ghat
+                if epoch > 1: self.m1 = self.b1*self.m1 + ghat  
+                else:         self.m1 = ghat
                 accum_ghat = ghat + self.b1*self.m1
             elif self.est_type == 'spsa':
                 accum_ghat = ghat
