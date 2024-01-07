@@ -1,48 +1,73 @@
 import torch
-from models import CustomCLIP
-from utils import compute_accuracy
+from torch.cuda.amp import autocast
 
 class SPSA:
-    def __init__(self, device):
+    def __init__(self, model, criterion):
         self.sp_avg = 5
         self.b1 = 0.9
         self.m1 = 0
+        self.o = 1.0
+        self.c = 0.005
+        self.a = 0.01
+        self.alpha = 0.4
+        self.gamma = 0.2
         
-        self.device = device
-        self.model = CustomCLIP().to(device)
+        self.model = model
+        self.criterion = criterion
+        
+        self.est_type = 'spsa-gc'
         
         for name, param in self.model.named_parameters():
             param.requires_grad_(False)
         
-    def estimate(self, w, loss_fn, image, label, ck):
+        torch.manual_seed(42)
+        torch.cuda.manual_seed_all(42)
+        
+    def estimate(self, epoch, images, labels):
+        with autocast():
 
-        ghats = []
-
-        for idx in range(self.sp_avg):
+            ghats = []
+            ak = self.a / ((epoch + self.o) ** self.alpha)
+            ck = self.c / (epoch ** self.gamma)
+            w = torch.nn.utils.parameters_to_vector(self.model.coordinator.dec.parameters())
             
-            p_side = (torch.rand(len(w)).reshape(-1,1) + 1)/2
-            samples = torch.cat([p_side,-p_side], dim=1)
-            perturb = torch.gather(samples, 1, torch.bernoulli(torch.ones_like(p_side)/2).type(torch.int64)).reshape(-1).cuda()
-            del samples; del p_side
-            
-            w_r = w + ck * perturb
-            w_l = w - ck * perturb
-            
-            torch.nn.utils.vector_to_parameters(w_r, self.model.coordinator.dec.parameters())
-            output_r = self.model(image)
-            
-            torch.nn.utils.vector_to_parameters(w_l, self.model.coordinator.dec.parameters())
-            output_l = self.model(image)
-
-            loss_r = loss_fn(output_r, label)
-            loss_l = loss_fn(output_l, label)
-            
-            ghat = (loss_r - loss_l)/((2*ck)*perturb)
-            ghats.append(ghat.reshape(1, -1))
-            
-        if self.sp_avg == 1: pass
-        else: ghat = torch.cat(ghats, dim=0).mean(dim=0)
-                        
-        loss = ((loss_r + loss_l)/2)
+            for _ in range(self.sp_avg):
                 
-        return ghat, loss
+                p_side = (torch.rand(len(w)).reshape(-1,1) + 1)/2
+                samples = torch.cat([p_side,-p_side], dim=1)
+                perturb = ck * torch.gather(samples, 1, torch.bernoulli(torch.ones_like(p_side)/2).type(torch.int64)).reshape(-1).cuda() 
+                del samples; del p_side
+                
+                w_r = w + perturb
+                w_l = w - perturb
+                
+                with torch.no_grad():
+                    torch.nn.utils.vector_to_parameters(w_r, self.model.coordinator.dec.parameters())
+                    output_r = self.model(images)
+                    
+                    torch.nn.utils.vector_to_parameters(w_l, self.model.coordinator.dec.parameters())
+                    output_l = self.model(images)
+
+                loss_r = self.criterion(output_r, labels)
+                loss_l = self.criterion(output_l, labels)
+                
+                ghat = (loss_r - loss_l)/((2*ck)*perturb)
+                ghats.append(ghat.reshape(1, -1))
+                
+            if self.sp_avg > 1:
+                ghat = torch.cat(ghats, dim=0).mean(dim=0) 
+
+            if self.est_type == 'spsa-gc':
+                if epoch > 1:
+                    self.m1 = self.b1*self.m1 + ghat  
+                else: 
+                    self.m1 = ghat
+                accum_ghat = ghat + self.b1*self.m1
+            elif self.est_type == 'spsa':
+                accum_ghat = ghat
+            else:
+                raise ValueError
+
+            w_new = w - ak * accum_ghat
+            torch.nn.utils.vector_to_parameters(w_new, self.model.coordinator.dec.parameters())
+            

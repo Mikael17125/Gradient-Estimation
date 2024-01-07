@@ -3,6 +3,10 @@ import torch.nn as nn
 from utils import clip_clipping
 from clip import clip
 from transformers import ViTForImageClassification
+import transformers
+
+transformers.logging.set_verbosity_error()
+
 
 CUSTOM_TEMPLATES = {
     "OxfordPets": "a photo of a {}, a type of pet.",
@@ -124,7 +128,6 @@ class CustomCLIP(nn.Module):
         self.n_classes = len(classnames)
         self.classnames = classnames
 
-        print(f"Text Prompts: {prompts}")
         prompts = torch.cat([clip.tokenize(p) for p in prompts])
 
         with torch.no_grad():

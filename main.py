@@ -5,6 +5,10 @@ from torchvision import datasets, transforms
 from spsa import SPSA
 from utils import Colors, print_color
 from models import CustomCLIP
+from train import train_epoch
+from val import val_epoch
+from inference import inference
+from configs import get_configs 
 
 # Define device (GPU if available, else CPU)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -15,12 +19,12 @@ epochs = 5000
 
 # Load SVHN dataset
 transform = transforms.Compose([transforms.ToTensor(),
-                                transforms.Resize((224, 224)), 
+                                transforms.Resize((224, 224), antialias=True), 
                                 transforms.Normalize((0.48145466, 0.4578275, 0.40821073), 
                                                      (0.26862954, 0.26130258, 0.27577711))])
 
-full_train_dataset = datasets.SVHN(root='./data', split='train', transform=transform, download=True)
-full_test_dataset = datasets.SVHN(root='./data', split='test', transform=transform, download=True)
+full_train_dataset = datasets.SVHN(root='./data', split='train', transform=transform, download=False)
+full_test_dataset = datasets.SVHN(root='./data', split='test', transform=transform, download=False)
 
 # Split the dataset into training and validation sets
 train_size = int(0.7 * len(full_train_dataset))
@@ -47,10 +51,30 @@ val_dataset = Subset(val_dataset.dataset, selected_val_indices)
 
 train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=False)
-
 test_loader = DataLoader(dataset=full_test_dataset, batch_size=batch_size, shuffle=False)
 
-model = CustomCLIP()
-criterion = nn.CrossEntropyLoss()
+def main(cfg):
+    
+    model = CustomCLIP().to(device)
+    criterion = nn.CrossEntropyLoss()
+    spsa = SPSA(model, criterion)
+    
+    model.coordinator.load_state_dict(torch.load("/home/mikael/Code/black_vip/spsa_coordinator_2.pth"))
 
-spsa = SPSA(model, criterion)
+    print_color(f'<====BLACK VIP====>', Colors.MAGENTA)
+    
+    for epoch in range(1, epochs):
+
+        if not cfg.no_train:
+            train_epoch(epoch, spsa, train_loader, device)
+            
+        if not cfg.no_val:
+            val_epoch(epoch, spsa, val_loader, device)
+            
+    if not cfg.no_inference:
+        inference(spsa, test_loader, device)
+        
+if __name__ == "__main__":
+    cfg = get_configs()
+    
+    main(cfg)
