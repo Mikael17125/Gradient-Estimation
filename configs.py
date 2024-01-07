@@ -8,7 +8,12 @@ def get_configs():
     parser.add_argument('--ckpt_path',
                     default=None,
                     type=Path,
-                    help='Root directory path')
+                    help='Checkpoint directory path')
+    
+    parser.add_argument('--save_path',
+                    default=None,
+                    type=Path,
+                    help='Save directory path')
     
     parser.add_argument('--n_epochs',
                     default=5000,
@@ -37,10 +42,6 @@ def get_configs():
     parser.add_argument('--no_val',
                         action='store_true',
                         help='If true, validation is not performed.')
-    
-    parser.add_argument('--no_inference',
-                        action='store_true',
-                        help='If true, test is not performed.')
     
     parser.add_argument('--n_threads',
                         default=4,

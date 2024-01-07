@@ -84,3 +84,16 @@ def load_checkpoint(fpath):
         raise
 
     return checkpoint
+
+
+def save_checkpoint(save_file_path, epoch, model):
+    if hasattr(model, 'module'):
+        model_state_dict = model.module.state_dict()
+    else:
+        model_state_dict = model.state_dict()
+        
+    save_states = {
+        'epoch': epoch,
+        'state_dict': model_state_dict
+    }
+    torch.save(save_states, save_file_path)

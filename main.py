@@ -2,14 +2,12 @@ import torch
 import torch.nn as nn
 from datasets import SVHN
 from spsa import SPSA
-from utils import Colors, print_color, load_checkpoint
+from utils import Colors, print_color, load_checkpoint, save_checkpoint
 from models import CustomCLIP
 from train import train_epoch
 from val import val_epoch
-from inference import inference
 from configs import get_configs
 
-# Define device (GPU if available, else CPU)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def main(cfg):
@@ -19,15 +17,8 @@ def main(cfg):
 
     if not cfg.no_train or not cfg.no_val:
         train_loader, val_loader = dataset.get_train_val_data()
-        
-    if not cfg.no_inference:
-        test_loader = dataset.get_test_data()
     
     model = CustomCLIP().to(device)
-    
-    if cfg.ckpt_path:
-        checkpoint = load_checkpoint(cfg.ckpt_path)
-        model.coordinator.dec.load_state_dict(checkpoint["state_dict"])
         
     criterion = nn.CrossEntropyLoss()
     spsa = SPSA(model, criterion)
@@ -41,8 +32,9 @@ def main(cfg):
             val_epoch(epoch, spsa, val_loader, device)
         
         if epoch % cfg.checkpoint == 0:
-            if not cfg.no_inference:
-                inference(spsa, test_loader, device)
+            print_color(f'<====SAVE CKPT====>', Colors.MAGENTA)
+            save_file_path = cfg.save_path / 'model_{}.pth'.format(epoch)
+            save_checkpoint(save_file_path, epoch, spsa.model.coordinator.dec)
         
 if __name__ == "__main__":
     cfg = get_configs()
