@@ -19,7 +19,7 @@ def main(cfg):
         train_loader, val_loader = dataset.get_train_val_data()
     
     model = CustomCLIP().to(device)
-        
+            
     criterion = nn.CrossEntropyLoss()
     spsa = SPSA(model, criterion)
         
@@ -31,7 +31,7 @@ def main(cfg):
         if not cfg.no_val:
             val_epoch(epoch, spsa, val_loader, device)
         
-        if epoch % cfg.checkpoint == 0:
+        if epoch % cfg.checkpoint == 0 or epoch == cfg.n_epochs -1:
             print_color(f'<====SAVE CKPT====>', Colors.MAGENTA)
             save_file_path = cfg.save_path / 'model_{}.pth'.format(epoch)
             save_checkpoint(save_file_path, epoch, spsa.model.coordinator.dec)

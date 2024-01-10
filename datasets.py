@@ -7,7 +7,9 @@ class SVHN:
         self.cfg = cfg
         
         self.train_transform = transforms.Compose([transforms.ToTensor(),
-                                transforms.Resize((224, 224), antialias=True), 
+                                transforms.Resize((224, 224), antialias=True),
+                                transforms.RandomResizedCrop((224, 224), (0.08, 1.0), antialias=True),
+                                transforms.RandomHorizontalFlip(p=0.5),
                                 transforms.Normalize((0.48145466, 0.4578275, 0.40821073), 
                                                      (0.26862954, 0.26130258, 0.27577711))])
         
