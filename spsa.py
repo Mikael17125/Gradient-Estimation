@@ -20,9 +20,6 @@ class SPSA:
         for name, param in self.model.named_parameters():
             param.requires_grad_(False)
         
-        torch.manual_seed(42)
-        torch.cuda.manual_seed_all(42)
-        
     def estimate(self, epoch, images, labels):
         with autocast():
             ghats = []

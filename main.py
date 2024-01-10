@@ -7,10 +7,17 @@ from models import CustomCLIP
 from train import train_epoch
 from val import val_epoch
 from configs import get_configs
+import numpy as np
+import random
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def main(cfg):
+    
+    random.seed(1)
+    np.random.seed(1)
+    torch.manual_seed(1)
+    torch.cuda.manual_seed_all(1)
     
     print_color(f'<====LOAD DATA====>', Colors.MAGENTA)
     dataset = SVHN(cfg)

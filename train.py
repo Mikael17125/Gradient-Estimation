@@ -14,7 +14,7 @@ def train_epoch(epoch, spsa, data_loader, device):
         spsa.estimate(epoch, images, labels)
         outputs = spsa.model(images)
         loss = spsa.criterion(outputs, labels)
-
+        
         correct += (labels == torch.argmax(outputs, dim=1)).float().sum()
         len_data += outputs.shape[0]
                 
